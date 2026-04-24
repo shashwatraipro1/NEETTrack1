@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ExamAce — Smart Study Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── RESET ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Bricolage Grotesque',sans-serif;background:#080c14;color:#e2e8f4;font-size:14px;line-height:1.5}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#2a3550;border-radius:4px}
+input,select,textarea,button{font-family:inherit;font-size:inherit}
+button{cursor:pointer;border:none;background:none}
+
+/* ── VARS ── */
+:root{
+  --bg:#080c14;
+  --surface:#0d1422;
+  --surface2:#111827;
+  --surface3:#1a2236;
+  --border:#1e2d47;
+  --border2:#243352;
+  --text:#e2e8f4;
+  --text2:#94a3b8;
+  --text3:#64748b;
+  --indigo:#6366f1;
+  --indigo-glow:rgba(99,102,241,0.25);
+  --cyan:#22d3ee;
+  --emerald:#10b981;
+  --amber:#f59e0b;
+  --rose:#f43f5e;
+  --purple:#a855f7;
+  --blue:#3b82f6;
+  --mono:'DM Mono',monospace;
+}
+
+/* ── LAYOUT ── */
+.shell{display:grid;grid-template-columns:260px 1fr;height:100vh;overflow:hidden}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;position:relative}
+.sidebar::before{content:'';position:absolute;top:-100px;left:-60px;width:280px;height:280px;background:radial-gradient(circle,rgba(99,102,241,0.08) 0%,transparent 70%);pointer-events:none}
+.main{overflow-y:auto;background:var(--bg);position:relative}
+.main::before{content:'';position:fixed;top:0;right:0;width:500px;height:500px;background:radial-gradient(circle at top right,rgba(99,102,241,0.05) 0%,transparent 60%);pointer-events:none;z-0}
+
+/* ── SIDEBAR ── */
+.sb-top{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 20px rgba(99,102,241,0.4)}
+.logo-text{font-size:18px;font-weight:800;letter-spacing:-0.5px}
+.logo-text span{background:linear-gradient(90deg,#6366f1,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sb-nav{flex:1;overflow-y:auto;padding:12px 8px}
+.nav-section-label{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--text3);font-weight:700;padding:8px 10px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid transparent;color:var(--text2);font-weight:500;font-size:13px;transition:all 0.2s;cursor:pointer;width:100%;text-align:left;margin-bottom:2px}
+.nav-item:hover{background:rgba(255,255,255,0.04);color:var(--text)}
+.nav-item.active{background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.25);color:#a5b4fc}
+.nav-item .nav-icon{font-size:16px;width:20px;text-align:center}
+.nav-badge{margin-left:auto;background:rgba(99,102,241,0.2);color:#a5b4fc;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:700}
+.nav-item.active .nav-badge{background:rgba(99,102,241,0.3)}
+.sb-bottom{padding:12px 8px;border-top:1px solid var(--border)}
+/* Streak widget */
+.streak-widget{background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.05));border:1px solid rgba(245,158,11,0.2);border-radius:14px;padding:12px;margin-bottom:8px}
+.sw-row{display:flex;align-items:center;justify-content:space-between}
+.sw-fire{font-size:22px}
+.sw-count{font-size:24px;font-weight:800;color:var(--amber)}
+.sw-label{font-size:10px;color:var(--text3);margin-top:1px}
+/* Countdown widget */
+.countdown-widget{background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:14px;padding:12px}
+.cw-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:6px;font-weight:600}
+.cw-exam{font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px}
+.cw-days{font-size:28px;font-weight:800;color:var(--indigo);line-height:1;font-family:var(--mono)}
+.cw-sub{font-size:10px;color:var(--text3);margin-top:2px}
+
+/* ── MAIN CONTENT ── */
+.page{display:none;padding:28px 32px 40px;min-height:100%;position:relative;z-index:1}
+.page.active{display:block}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px}
+.page-title{font-size:26px;font-weight:800;letter-spacing:-0.8px;line-height:1.1}
+.page-title span{background:linear-gradient(90deg,#6366f1,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.page-sub{font-size:12px;color:var(--text3);margin-top:4px}
+
+/* ── GLASS CARD ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:20px}
+.card-sm{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px}
+.card-title{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:8px;letter-spacing:-0.2px}
+.card-title .ct-icon{font-size:16px}
+
+/* ── STAT CARDS ── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;position:relative;overflow:hidden}
+.stat-box::after{content:'';position:absolute;top:0;right:0;width:60px;height:60px;border-radius:0 16px 0 60px;opacity:0.08}
+.stat-box.indigo::after{background:var(--indigo)}
+.stat-box.cyan::after{background:var(--cyan)}
+.stat-box.emerald::after{background:var(--emerald)}
+.stat-box.amber::after{background:var(--amber)}
+.stat-val{font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1;font-family:var(--mono)}
+.stat-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-top:6px;font-weight:600}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ── INPUT / SELECT ── */
+.inp{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:9px 12px;width:100%;outline:none;transition:all 0.2s;font-size:13px}
+.inp:focus{border-color:var(--indigo);box-shadow:0 0 0 3px rgba(99,102,241,0.1)}
+.inp::placeholder{color:var(--text3)}
+textarea.inp{resize:vertical;min-height:70px;line-height:1.6}
+select.inp{cursor:pointer}
+.field-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);font-weight:700;margin-bottom:5px;display:block}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 18px;border-radius:10px;font-size:13px;font-weight:600;transition:all 0.2s;cursor:pointer;border:1px solid var(--border2)}
+.btn-primary{background:var(--indigo);border-color:var(--indigo);color:#fff;box-shadow:0 0 20px rgba(99,102,241,0.3)}
+.btn-primary:hover{background:#5457e8;box-shadow:0 0 28px rgba(99,102,241,0.4)}
+.btn-ghost{background:rgba(255,255,255,0.04);color:var(--text2)}
+.btn-ghost:hover{background:rgba(255,255,255,0.07);color:var(--text)}
+.btn-sm{padding:6px 14px;font-size:12px;border-radius:8px}
+.btn-icon{width:34px;height:34px;padding:0;border-radius:9px;font-size:15px;background:rgba(255,255,255,0.04);color:var(--text2);border:1px solid var(--border2)}
+.btn-icon:hover{background:rgba(255,255,255,0.08);color:var(--text)}
+
+/* ── GRID ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.mb-4{margin-bottom:16px}
+.mb-6{margin-bottom:24px}
+
+/* ── TODAY PAGE ── */
+/* Progress bar */
+.prog-bar-track{background:var(--border);border-radius:4px;height:8px;overflow:hidden;border-radius:8px}
+.prog-bar-fill{height:100%;background:linear-gradient(90deg,var(--indigo),var(--cyan));border-radius:8px;transition:width 0.4s ease}
+
+/* Date strip */
+.date-strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:20px}
+.date-strip::-webkit-scrollbar{display:none}
+.date-pill{display:flex;flex-direction:column;align-items:center;padding:10px 14px;border-radius:14px;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all 0.2s;min-width:56px;font-size:11px;color:var(--text3);font-weight:600}
+.date-pill span:last-child{font-size:16px;font-weight:800;color:var(--text);margin-top:2px;font-family:var(--mono)}
+.date-pill.active{background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.35);color:#a5b4fc}
+.date-pill.active span:last-child{color:#a5b4fc}
+.date-pill.has-data::after{content:'•';color:var(--emerald);font-size:8px;margin-top:2px}
+.date-pill:hover:not(.active){background:var(--surface3)}
+
+/* Task item */
+.task-item{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px;transition:all 0.2s;position:relative;overflow:hidden;margin-bottom:8px}
+.task-item:hover{border-color:var(--border2);transform:translateY(-1px)}
+.task-item.done{opacity:0.45}
+.task-item.done .task-title{text-decoration:line-through;color:var(--text3)}
+.task-item .priority-bar{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:14px 0 0 14px}
+.priority-bar.high{background:var(--rose)}
+.priority-bar.medium{background:var(--amber)}
+.priority-bar.low{background:var(--emerald)}
+.task-check{width:22px;height:22px;border-radius:7px;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all 0.2s;margin-top:1px}
+.task-item.done .task-check{background:var(--emerald);border-color:var(--emerald)}
+.task-body{flex:1;min-width:0}
+.task-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px}
+.task-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.tag{padding:2px 8px;border-radius:16px;font-size:10px;font-weight:700;border:1px solid}
+.tag-high{background:rgba(244,63,94,0.1);border-color:rgba(244,63,94,0.25);color:#fb7185}
+.tag-medium{background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.25);color:#fbbf24}
+.tag-low{background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#34d399}
+.tag-subject{background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.25);color:#a5b4fc}
+.tag-mins{background:rgba(148,163,184,0.08);border-color:var(--border);color:var(--text3)}
+.task-actions{display:flex;gap:4px;opacity:0;transition:opacity 0.15s;flex-shrink:0}
+.task-item:hover .task-actions{opacity:1}
+.task-del{width:28px;height:28px;border-radius:8px;border:1px solid var(--border);background:rgba(244,63,94,0.08);color:#fb7185;font-size:12px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center}
+.task-del:hover{background:rgba(244,63,94,0.18)}
+.task-edit{width:28px;height:28px;border-radius:8px;border:1px solid var(--border);background:rgba(99,102,241,0.08);color:#a5b4fc;font-size:12px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center}
+
+/* Add task form */
+.add-task-form{background:var(--surface2);border:1px solid var(--border2);border-radius:16px;padding:16px;margin-bottom:16px}
+.form-row{display:grid;gap:10px;margin-bottom:10px}
+.form-row.c5{grid-template-columns:1fr 130px 120px 100px 80px}
+.form-row.c2{grid-template-columns:1fr 1fr}
+.form-row.c3{grid-template-columns:1fr 1fr 1fr}
+
+/* Subject filter pills */
+.filter-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.filter-pill{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s}
+.filter-pill:hover{border-color:var(--border2);color:var(--text)}
+.filter-pill.active{background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.3);color:#a5b4fc}
+
+/* Section heading */
+.section-heading{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin:16px 0 8px;display:flex;align-items:center;gap:8px}
+.section-heading::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* Subject icon */
+.subj-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+
+/* ── TIMER ── */
+.timer-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:20px;margin-bottom:16px}
+.timer-layout{display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:center}
+.timer-circle{position:relative;width:200px;height:200px}
+.tc-svg{width:100%;height:100%;transform:rotate(-90deg)}
+.tc-track{fill:none;stroke:var(--border2);stroke-width:6}
+.tc-fill{fill:none;stroke:var(--indigo);stroke-width:6;stroke-linecap:round;stroke-dasharray:534;stroke-dashoffset:534;transition:stroke-dashoffset 0.9s linear,stroke 0.3s}
+.tc-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.tc-time{font-size:2.4rem;font-weight:800;letter-spacing:-3px;font-family:var(--mono);line-height:1}
+.tc-mode{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;font-weight:600}
+.timer-controls{display:flex;flex-direction:column;gap:12px}
+.mode-btns{display:flex;gap:6px}
+.mode-btn{flex:1;padding:7px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text3);font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s}
+.mode-btn:hover{border-color:var(--border2);color:var(--text)}
+.mode-btn.active{background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.3);color:#a5b4fc}
+.timer-info{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ti-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
+.ti-val{font-size:14px;font-weight:800;font-family:var(--mono)}
+.ti-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-top:2px;font-weight:600}
+.timer-ctrls{display:flex;gap:8px}
+.btn-play{flex:1;padding:10px;border-radius:12px;background:var(--indigo);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 15px rgba(99,102,241,0.35);display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-play:hover{background:#5457e8;transform:translateY(-1px);box-shadow:0 6px 20px rgba(99,102,241,0.4)}
+.btn-play.paused{background:var(--surface2);border:1px solid var(--border);color:#a5b4fc;box-shadow:none}
+/* Stopwatch */
+.sw-card{background:var(--surface2);border:1px solid rgba(34,211,238,0.15);border-radius:12px;padding:12px;margin-top:4px}
+.sw-display{font-family:var(--mono);font-size:1.4rem;font-weight:700;color:var(--cyan);text-align:center;letter-spacing:1px}
+.sw-sublabel{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);text-align:center;margin-top:2px;font-weight:600}
+.sw-btns{display:flex;gap:6px;margin-top:8px}
+.sw-btn{flex:1;padding:6px;border-radius:8px;border:1px solid var(--border);background:rgba(34,211,238,0.06);color:var(--cyan);font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s}
+.sw-btn:hover{background:rgba(34,211,238,0.12)}
+/* Pomo dots */
+.pomo-dots{display:flex;gap:5px;justify-content:center;margin-top:6px}
+.pomo-dot{width:10px;height:10px;border-radius:3px;background:var(--border2);transition:all 0.3s}
+.pomo-dot.filled{background:var(--indigo);box-shadow:0 0 8px rgba(99,102,241,0.5)}
+/* Sync strip */
+.sync-strip{background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:9px 12px;font-size:11px;color:var(--text2);display:flex;align-items:center;gap:8px}
+.sync-strip b{color:var(--emerald)}
+.sync-badge{background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);color:var(--emerald);padding:1px 8px;border-radius:8px;font-size:10px;font-weight:700;margin-left:auto}
+
+/* ── AT A GLANCE ── */
+.glance-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.glance-box{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px}
+.gb-icon{font-size:20px;margin-bottom:6px}
+.gb-val{font-size:22px;font-weight:800;font-family:var(--mono);line-height:1}
+.gb-lbl{font-size:10px;color:var(--text3);margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+.distrib-bar{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.db-row{display:flex;align-items:center;gap:10px;font-size:11px}
+.db-label{width:70px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;font-size:9px}
+.db-track{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.db-fill{height:100%;border-radius:3px;transition:width 0.5s ease}
+.db-pct{width:32px;text-align:right;color:var(--text3);font-family:var(--mono);font-size:10px}
+.insight-box{background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.15);border-radius:12px;padding:12px;display:flex;gap:10px;font-size:11px;color:var(--text2);line-height:1.6}
+.insight-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+
+/* ── ANALYTICS ── */
+.bar-chart{display:flex;align-items:flex-end;gap:8px;height:100px;margin-top:8px}
+.bc-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bc-bar{width:100%;border-radius:5px 5px 0 0;min-height:3px;transition:height 0.5s ease;opacity:0.8}
+.bc-bar.today{opacity:1}
+.bc-lbl{font-size:9px;color:var(--text3);font-weight:600;text-align:center}
+.bc-val{font-size:9px;color:var(--text2);font-weight:700;font-family:var(--mono)}
+
+/* ── SAVE BUTTON ── */
+.save-btn{width:100%;padding:13px;border-radius:14px;background:linear-gradient(135deg,var(--indigo),#8b5cf6);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;margin-top:16px;box-shadow:0 4px 15px rgba(99,102,241,0.3);letter-spacing:0.2px}
+.save-btn:hover{transform:translateY(-1px);box-shadow:0 8px 25px rgba(99,102,241,0.4)}
+.toast{background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);color:#6ee7b7;border-radius:10px;padding:10px;text-align:center;font-size:12px;font-weight:600;margin-top:10px;display:none}
+
+/* ── ANALYTICS LAYOUT ── */
+.analytics-layout{display:grid;grid-template-columns:1fr 280px;gap:16px;margin-bottom:16px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1100px){
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .analytics-layout{grid-template-columns:1fr}
+  .timer-layout{grid-template-columns:1fr}
+  .timer-circle{margin:0 auto}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar">
+  <div class="sb-top">
+    <div class="logo">
+      <div class="logo-icon">🎯</div>
+      <div class="logo-text">Exam<span>Ace</span></div>
+    </div>
+  </div>
+
+  <nav class="sb-nav">
+    <div class="nav-section-label">Main</div>
+    <button class="nav-item active" onclick="gotoPage('home',this)">
+      <span class="nav-icon">🏠</span> Home
+    </button>
+    <button class="nav-item" onclick="gotoPage('analytics',this)">
+      <span class="nav-icon">📊</span> Analytics
+    </button>
+
+    <div class="nav-section-label" style="margin-top:8px">Study</div>
+    <button class="nav-item" onclick="gotoPage('tasks',this)">
+      <span class="nav-icon">✅</span> My Tasks
+      <span class="nav-badge" id="tasks-badge">0</span>
+    </button>
+    <button class="nav-item" onclick="gotoPage('timer',this)">
+      <span class="nav-icon">⏱</span> Timer
+    </button>
+    <button class="nav-item" onclick="gotoPage('notes',this)">
+      <span class="nav-icon">📝</span> Notes
+      <span class="nav-badge" id="notes-badge">0</span>
+    </button>
+  
+  <button class="nav-item" onclick="gotoPage('biology',this)">
+  <span class="nav-icon">🧬</span> Biology Planner
+</button>
+<button class="nav-item" onclick="gotoPage('physics',this)"><span class="nav-icon">⚛️</span> Physics Planner </button>
+<button class="nav-item" onclick="gotoPage('chemistry',this)"><span class="nav-icon">🧪</span> Chemistry Planner</button>
+</nav>
+  <div class="sb-bottom">
+    <div class="streak-widget">
+      <div class="sw-row">
+        <div>
+          <div class="sw-label">Study Streak</div>
+          <div class="sw-count" id="streak-count">0</div>
+          <div class="sw-label">days in a row 🔥</div>
+        </div>
+        <div class="sw-fire">🔥</div>
+      </div>
+    </div>
+    <div class="countdown-widget">
+      <div class="cw-label">Exam Countdown</div>
+      <div class="cw-exam" id="cw-exam-name">NEET 2026</div>
+      <div class="cw-days" id="cw-days">—</div>
+      <div class="cw-sub">days remaining</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<main class="main">
+
+<!-- ══ HOME ══ -->
+<div class="page active" id="page-home">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Good <span id="greeting-time">morning</span>, Aspirant! 👋</div>
+      <div class="page-sub" id="home-date-sub">—</div>
+    </div>
+    <button class="btn btn-primary" onclick="saveLog()">Save Log</button>
+  </div>
+
+  <!-- DATE STRIP -->
+  <div class="date-strip" id="date-strip"></div>
+
+  <!-- STAT CARDS -->
+  <div class="stat-grid mb-6">
+    <div class="stat-box indigo">
+      <div class="stat-val" id="stat-tasks" style="color:#a5b4fc">0/0</div>
+      <div class="stat-lbl">Tasks Done</div>
+      <div class="stat-sub" id="stat-tasks-sub">0% complete</div>
+    </div>
+    <div class="stat-box cyan">
+      <div class="stat-val" id="stat-hours" style="color:#67e8f9">0h</div>
+      <div class="stat-lbl">Study Hours</div>
+      <div class="stat-sub" id="stat-hours-sub">synced from timer</div>
+    </div>
+    <div class="stat-box emerald">
+      <div class="stat-val" id="stat-questions" style="color:#6ee7b7">0</div>
+      <div class="stat-lbl">Questions</div>
+      <div class="stat-sub">practiced today</div>
+    </div>
+    <div class="stat-box amber">
+      <div class="stat-val" id="stat-eff" style="color:#fcd34d">—</div>
+      <div class="stat-lbl">Effectivity</div>
+      <div class="stat-sub" id="stat-eff-sub">auto-calculated</div>
+    </div>
+  </div>
+
+  <!-- TODAY'S PROGRESS -->
+  <div class="card mb-4">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="card-title" style="margin:0"><span class="ct-icon">🎯</span> Today's Progress</div>
+      <div style="font-size:12px;font-weight:700;color:#a5b4fc" id="prog-pct">0%</div>
+    </div>
+    <div class="prog-bar-track"><div class="prog-bar-fill" id="prog-bar" style="width:0%"></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px;text-align:center">
+      <div><div style="font-size:18px;font-weight:800;color:#a5b4fc;font-family:var(--mono)" id="prog-done">0</div><div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase">Done</div></div>
+      <div><div style="font-size:18px;font-weight:800;color:#fbbf24;font-family:var(--mono)" id="prog-left">0</div><div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase">Remaining</div></div>
+      <div><div style="font-size:18px;font-weight:800;color:#34d399;font-family:var(--mono)" id="prog-total">0</div><div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase">Total Tasks</div></div>
+    </div>
+  </div>
+
+  <!-- ADD TASK -->
+  <div class="add-task-form mb-4">
+    <div class="card-title" style="margin-bottom:12px"><span class="ct-icon">➕</span> Add Task</div>
+    <div class="form-row c5">
+      <div>
+        <span class="field-label">Task / Topic</span>
+        <input class="inp" id="add-title" placeholder="e.g. Lecture 6 – Solutions">
+      </div>
+      <div>
+        <span class="field-label">Subject</span>
+        <select class="inp" id="add-subject">
+          <option>Physics</option>
+          <option>Physical Chem</option>
+          <option>Organic Chem</option>
+          <option>Inorganic Chem</option>
+          <option>Zoology</option>
+          <option>Botany</option>
+        </select>
+      </div>
+      <div>
+        <span class="field-label">Priority</span>
+        <select class="inp" id="add-priority">
+          <option value="high">🔴 High</option>
+          <option value="medium" selected>🟡 Medium</option>
+          <option value="low">🟢 Low</option>
+        </select>
+      </div>
+      <div>
+        <span class="field-label">Duration (min)</span>
+        <input class="inp" id="add-mins" type="number" min="0" step="15" placeholder="60">
+      </div>
+      <div style="display:flex;align-items:flex-end">
+        <button class="btn btn-primary" style="width:100%;padding:9px" onclick="addTask()">Add</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input class="inp" id="add-chapter" placeholder="Chapter / Topic (optional)" style="flex:1">
+      <input class="inp" id="add-notes-task" placeholder="Notes (optional)" style="flex:2">
+    </div>
+  </div>
+
+  <!-- TASK LIST -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div class="card-title" style="margin:0"><span class="ct-icon">📋</span> Today's Tasks</div>
+    <div class="filter-pills" style="margin:0">
+      <button class="filter-pill active" onclick="setFilter(this,'all')">All</button>
+      <button class="filter-pill" onclick="setFilter(this,'Physics')">⚛️ Physics</button>
+      <button class="filter-pill" onclick="setFilter(this,'Physical Chem')">🧪 Physical</button>
+      <button class="filter-pill" onclick="setFilter(this,'Organic Chem')">🔗 Organic</button>
+      <button class="filter-pill" onclick="setFilter(this,'Inorganic Chem')">💎 Inorganic</button>
+      <button class="filter-pill" onclick="setFilter(this,'Zoology')">🐾 Zoology</button>
+      <button class="filter-pill" onclick="setFilter(this,'Botany')">🌿 Botany</button>
+    </div>
+  </div>
+  <div id="task-list-today"></div>
+  <div id="completed-section" style="display:none">
+    <div class="section-heading" style="cursor:pointer" onclick="toggleCompleted()">
+      ✅ Completed Tasks <span id="comp-count">(0)</span>
+    </div>
+    <div id="completed-list" style="display:none"></div>
+  </div>
+
+  <!-- SESSION DETAILS -->
+  <div class="grid-2 mb-4" style="margin-top:16px">
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">📊</span> Session Details</div>
+      <div class="form-row c2" style="margin-bottom:10px">
+        <div class="field"><span class="field-label">Questions Practiced</span><input class="inp" id="inp-q" type="number" placeholder="e.g. 50" min="0" oninput="calcEffectivity()"></div>
+        <div class="field"><span class="field-label">Study Hours (auto)</span><input class="inp" id="inp-h" type="number" placeholder="e.g. 6" step="0.5" oninput="calcEffectivity()"></div>
+      </div>
+      <div class="form-row c2">
+        <div class="field"><span class="field-label">Effectivity (auto/override)</span><input class="inp" id="inp-eff" type="number" min="1" max="10" step="0.1" placeholder="Auto-calculated"></div>
+        <div class="field">
+          <span class="field-label">Any Test Today?</span>
+          <div style="display:flex;gap:6px;margin-top:4px">
+            <button class="btn btn-ghost btn-sm" id="test-yes" onclick="setTest('yes')" style="flex:1">✓ Yes</button>
+            <button class="btn btn-ghost btn-sm" id="test-no" onclick="setTest('no')" style="flex:1">✗ No</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">💭</span> Daily Reflection</div>
+      <div class="field" style="margin-bottom:8px">
+        <span class="field-label" style="color:#fcd34d;font-weight:800">How was today?</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px" id="mood-btns">
+          <button class="filter-pill" onclick="setMood('😴 Drained',this)">😴 Drained</button>
+          <button class="filter-pill" onclick="setMood('😐 Average',this)">😐 Average</button>
+          <button class="filter-pill" onclick="setMood('🙂 Good',this)">🙂 Good</button>
+          <button class="filter-pill" onclick="setMood('⚡ Focused',this)">⚡ Focused</button>
+          <button class="filter-pill" onclick="setMood('🔥 On Fire',this)">🔥 On Fire</button>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <span class="field-label">Improved at</span>
+        <input class="inp" id="inp-improved" placeholder="e.g. Organic reactions…">
+      </div>
+      <div class="field">
+        <span class="field-label">Regret / Fix tomorrow</span>
+        <textarea class="inp" id="inp-regret" placeholder="e.g. Wasted time on phone…" style="min-height:50px"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <button class="save-btn" onclick="saveLog()">Save Today's Log ✓</button>
+  <div class="toast" id="toast">✓ Saved! Keep grinding, future doctor 🎯</div>
+</div>
+
+<!-- ══ TASKS PAGE ══ -->
+<div class="page" id="page-tasks">
+  <div class="page-header">
+    <div>
+      <div class="page-title">My <span>Tasks</span></div>
+      <div class="page-sub">All tasks across all days</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="gotoPage('home',null)">+ Add Task</button>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+    <div class="filter-pills" style="margin:0;flex:1">
+      <button class="filter-pill active" onclick="setAllFilter(this,'all')">All</button>
+      <button class="filter-pill" onclick="setAllFilter(this,'Physics')">⚛️ Physics</button>
+      <button class="filter-pill" onclick="setAllFilter(this,'Physical Chem')">🧪 Physical</button>
+      <button class="filter-pill" onclick="setAllFilter(this,'Organic Chem')">🔗 Organic</button>
+      <button class="filter-pill" onclick="setAllFilter(this,'Inorganic Chem')">💎 Inorganic</button>
+      <button class="filter-pill" onclick="setAllFilter(this,'Zoology')">🐾 Zoology</button>
+      <button class="filter-pill" onclick="setAllFilter(this,'Botany')">🌿 Botany</button>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="filter-pill" onclick="setAllFilter(null,'high')" style="color:#fb7185;border-color:rgba(244,63,94,0.25)">🔴 High</button>
+      <button class="filter-pill" onclick="setAllFilter(null,'medium')" style="color:#fbbf24;border-color:rgba(245,158,11,0.25)">🟡 Med</button>
+      <button class="filter-pill" onclick="setAllFilter(null,'low')" style="color:#34d399;border-color:rgba(16,185,129,0.25)">🟢 Low</button>
+    </div>
+  </div>
+
+  <!-- Progress summary -->
+  <div class="card-sm mb-4" style="display:flex;align-items:center;gap:16px">
+    <div style="flex:1">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:11px;color:var(--text3);font-weight:600">
+        <span>Overall completion</span><span id="all-tasks-pct">0%</span>
+      </div>
+      <div class="prog-bar-track"><div class="prog-bar-fill" id="all-tasks-bar" style="width:0%"></div></div>
+    </div>
+    <div style="text-align:center;min-width:80px">
+      <div style="font-size:20px;font-weight:800;font-family:var(--mono);color:#a5b4fc" id="all-tasks-done">0</div>
+      <div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase">Done</div>
+    </div>
+    <div style="text-align:center;min-width:80px">
+      <div style="font-size:20px;font-weight:800;font-family:var(--mono);color:#fbbf24" id="all-tasks-pending">0</div>
+      <div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase">Pending</div>
+    </div>
+    <div style="text-align:center;min-width:80px">
+      <div style="font-size:20px;font-weight:800;font-family:var(--mono);color:#fb7185" id="all-tasks-high">0</div>
+      <div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase">High Pri.</div>
+    </div>
+  </div>
+
+  <div id="all-tasks-list"></div>
+</div>
+
+<!-- ══ TIMER PAGE ══ -->
+<div class="page" id="page-timer">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Study <span>Timer</span></div>
+      <div class="page-sub">Pomodoro + Stopwatch — synced to your log</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <!-- POMODORO -->
+      <div class="timer-card mb-4">
+        <div class="card-title"><span class="ct-icon">🍅</span> Pomodoro Timer</div>
+        <div class="mode-btns" style="margin-bottom:16px">
+          <button class="mode-btn active" data-mode="focus" onclick="setPomoMode('focus',25)">🎯 Focus 25m</button>
+          <button class="mode-btn" data-mode="short" onclick="setPomoMode('short',5)">☕ Break 5m</button>
+          <button class="mode-btn" data-mode="long" onclick="setPomoMode('long',15)">🌿 Long 15m</button>
+        </div>
+        <div class="timer-layout">
+          <div class="timer-circle">
+            <svg class="tc-svg" viewBox="0 0 200 200">
+              <circle class="tc-track" cx="100" cy="100" r="85"/>
+              <circle class="tc-fill" id="pomo-ring" cx="100" cy="100" r="85"/>
+            </svg>
+            <div class="tc-inner">
+              <div class="tc-time" id="pomo-display">25:00</div>
+              <div class="tc-mode" id="pomo-mode-lbl">Focus</div>
+            </div>
+          </div>
+          <div class="timer-controls">
+            <div class="pomo-dots" id="pomo-dots"></div>
+            <div class="timer-info">
+              <div class="ti-box"><div class="ti-val" id="ti-sessions" style="color:#a5b4fc">0</div><div class="ti-lbl">Sessions</div></div>
+              <div class="ti-box"><div class="ti-val" id="ti-focus" style="color:#fbbf24">0m</div><div class="ti-lbl">Focus Min</div></div>
+              <div class="ti-box"><div class="ti-val" id="ti-bonus" style="color:#6ee7b7">+0</div><div class="ti-lbl">Bonus</div></div>
+              <div class="ti-box"><div class="ti-val" id="ti-eff" style="color:#67e8f9">—</div><div class="ti-lbl">Effectivity</div></div>
+            </div>
+            <div class="timer-ctrls">
+              <button class="btn-play" id="pomo-play-btn" onclick="togglePomo()">▶ Start</button>
+              <button class="btn-icon" onclick="resetPomo()" title="Reset">↺</button>
+              <button class="btn-icon" onclick="skipPomo()" title="Skip">⏭</button>
+            </div>
+            <div class="sync-strip">⚡ Hours synced: <b id="sync-hrs">0h 0m</b><span class="sync-badge" id="sync-eff-badge">—</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <!-- STOPWATCH -->
+      <div class="card mb-4">
+        <div class="card-title"><span class="ct-icon">⏱</span> Stopwatch</div>
+        <div class="sw-card">
+          <div class="sw-display" id="sw-display">0:00:00</div>
+          <div class="sw-sublabel">Total Active Study Time</div>
+        </div>
+        <div class="sw-btns" style="margin-top:10px">
+          <button class="sw-btn" onclick="toggleSW()" id="sw-start-btn">▶ Start</button>
+          <button class="sw-btn" onclick="resetSW()" style="background:rgba(244,63,94,0.06);color:#fb7185;border-color:rgba(244,63,94,0.2)">↺ Reset</button>
+        </div>
+
+        <!-- Longest session -->
+        <div style="margin-top:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);font-weight:700;margin-bottom:6px">🏆 Personal Bests</div>
+          <div style="display:flex;gap:8px">
+            <div style="flex:1;text-align:center">
+              <div style="font-size:16px;font-weight:800;color:var(--cyan);font-family:var(--mono)" id="best-sw">0:00</div>
+              <div style="font-size:9px;color:var(--text3);font-weight:600">Longest SW</div>
+            </div>
+            <div style="flex:1;text-align:center">
+              <div style="font-size:16px;font-weight:800;color:var(--indigo);font-family:var(--mono)" id="best-pomo">0</div>
+              <div style="font-size:9px;color:var(--text3);font-weight:600">Max Pomodoros</div>
+            </div>
+            <div style="flex:1;text-align:center">
+              <div style="font-size:16px;font-weight:800;color:var(--amber);font-family:var(--mono)" id="best-hrs">0h</div>
+              <div style="font-size:9px;color:var(--text3);font-weight:600">Best Day</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AT A GLANCE (RIGHT PANEL) -->
+      <div class="card">
+        <div class="card-title"><span class="ct-icon">📈</span> At a Glance</div>
+        <div class="glance-grid">
+          <div class="glance-box">
+            <div class="gb-icon">⏰</div>
+            <div class="gb-val" id="gl-hours" style="color:#67e8f9">0h</div>
+            <div class="gb-lbl">Today's Hours</div>
+          </div>
+          <div class="glance-box">
+            <div class="gb-icon">📝</div>
+            <div class="gb-val" id="gl-q" style="color:#6ee7b7">0</div>
+            <div class="gb-lbl">Questions</div>
+          </div>
+        </div>
+        <div class="distrib-bar">
+          <div class="db-row"><span class="db-label">Theory</span><div class="db-track"><div class="db-fill" id="dist-theory" style="width:0%;background:linear-gradient(90deg,#3b82f6,#6366f1)"></div></div><span class="db-pct" id="dist-theory-pct">0%</span></div>
+          <div class="db-row"><span class="db-label">Practice</span><div class="db-track"><div class="db-fill" id="dist-practice" style="width:0%;background:linear-gradient(90deg,#10b981,#14b8a6)"></div></div><span class="db-pct" id="dist-practice-pct">0%</span></div>
+          <div class="db-row"><span class="db-label">Revision</span><div class="db-track"><div class="db-fill" id="dist-revision" style="width:0%;background:linear-gradient(90deg,#a855f7,#ec4899)"></div></div><span class="db-pct" id="dist-revision-pct">0%</span></div>
+        </div>
+        <div class="insight-box">
+          <span class="insight-icon">💡</span>
+          <span id="insight-text">Log tasks and complete sessions to unlock personalized insights!</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ NOTES PAGE ══ -->
+<div class="page" id="page-notes">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Study <span>Notes</span></div>
+      <div class="page-sub">Quick capture for ideas, doubts, and insights</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="addNote()">+ New Note</button>
+  </div>
+
+  <!-- Add note form -->
+  <div class="add-task-form mb-4">
+    <div class="form-row c3" style="margin-bottom:10px">
+      <div><span class="field-label">Title</span><input class="inp" id="note-title" placeholder="Note title…"></div>
+      <div><span class="field-label">Subject</span>
+        <select class="inp" id="note-subject">
+          <option>General</option>
+          <option>Physics</option>
+          <option>Physical Chem</option>
+          <option>Organic Chem</option>
+          <option>Inorganic Chem</option>
+          <option>Zoology</option>
+          <option>Botany</option>
+        </select>
+      </div>
+      <div><span class="field-label">Tag</span>
+        <select class="inp" id="note-tag">
+          <option value="doubt">🤔 Doubt</option>
+          <option value="insight">💡 Insight</option>
+          <option value="formula">📐 Formula</option>
+          <option value="revision">🔄 Revision</option>
+          <option value="general">📌 General</option>
+        </select>
+      </div>
+    </div>
+    <textarea class="inp" id="note-content" placeholder="Write your note here…" style="min-height:90px;margin-bottom:10px"></textarea>
+    <button class="btn btn-primary btn-sm" onclick="addNote()">Save Note</button>
+  </div>
+
+  <!-- Notes list -->
+  <div id="notes-list"></div>
+</div>
+
+<!-- ══ ANALYTICS PAGE ══ -->
+<div class="page" id="page-analytics">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Your <span>Analytics</span></div>
+      <div class="page-sub">Track your study patterns and performance</div>
+    </div>
+  </div>
+
+  <div class="stat-grid mb-6">
+    <div class="stat-box indigo">
+      <div class="stat-val" id="an-total-h" style="color:#a5b4fc">0h</div>
+      <div class="stat-lbl">Total Hours</div>
+    </div>
+    <div class="stat-box cyan">
+      <div class="stat-val" id="an-total-q" style="color:#67e8f9">0</div>
+      <div class="stat-lbl">Total Questions</div>
+    </div>
+    <div class="stat-box emerald">
+      <div class="stat-val" id="an-avg-eff" style="color:#6ee7b7">—</div>
+      <div class="stat-lbl">Avg Effectivity</div>
+    </div>
+    <div class="stat-box amber">
+      <div class="stat-val" id="an-days" style="color:#fcd34d">0</div>
+      <div class="stat-lbl">Days Logged</div>
+    </div>
+  </div>
+
+  <div class="analytics-layout">
+    <div>
+      <div class="card mb-4">
+        <div class="card-title"><span class="ct-icon">📈</span> Study Hours — Last 7 Days</div>
+        <div class="bar-chart" id="chart-h"></div>
+      </div>
+      <div class="card mb-4">
+        <div class="card-title"><span class="ct-icon">📝</span> Questions Practiced — Last 7 Days</div>
+        <div class="bar-chart" id="chart-q"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="ct-icon">⚡</span> Effectivity — Last 7 Days</div>
+        <div class="bar-chart" id="chart-eff"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card mb-4">
+        <div class="card-title"><span class="ct-icon">🎯</span> Subject Breakdown</div>
+        <div id="subj-breakdown"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="ct-icon">🏆</span> Personal Bests</div>
+        <div id="pb-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ══ BIOLOGY PLANNER ══ -->
+<div class="page" id="page-biology">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Biology <span>Planner</span></div>
+      <div class="page-sub">Track your Botany progress</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+      <input class="inp" id="bio-input" placeholder="Add Chapter">
+      <button class="btn btn-primary" onclick="bioAdd()">Add</button>
+    </div>
+
+    <div id="bio-table"></div>
+  </div>
+</div>
+<div class="page" id="page-physics">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Physics <span>Planner</span></div>
+      <div class="page-sub">Track your progress</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+      <input class="inp" id="phy-input" placeholder="Add Chapter">
+      <button class="btn btn-primary" onclick="phyAdd()">Add</button>
+    </div>
+
+    <div id="phy-table"></div>
+  </div>
+</div>
+<div class="page" id="page-chemistry">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Chemistry <span>Planner</span></div>
+      <div class="page-sub">Track your progress</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+      <input class="inp" id="chem-input" placeholder="Add Chapter">
+      <button class="btn btn-primary" onclick="chemAdd()">Add</button>
+    </div>
+
+    <div id="chem-table"></div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+  function getTodayIST() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  const istTime = new Date(now.getTime() + (330 - offset) * 60000);
+  return istTime.toISOString().split('T')[0];
+}
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function formatDate(d) {
+  return new Date(d + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+// ═══════════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════════
+const SK = k => 'examace_' + k;
+function save(k, v) { try { localStorage.setItem(SK(k), JSON.stringify(v)); } catch(e) {} }
+function load(k, def = null) { try { const v = localStorage.getItem(SK(k)); return v !== null ? JSON.parse(v) : def; } catch(e) { return def; } }
+
+// Get today in IST (handles late-night entries correctly)
+function getTodayIST() {
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60000;
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const istTime = new Date(utc + istOffset);
+  return istTime;    
+}
+
+function fmtDate(d) {
+  return new Date(d).toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let allTasks = load('tasks', []);
+let allNotes = load('notes', []);
+let taskFilter = 'all';
+let allTaskFilter = 'all';
+let selectedMood = '';
+let selectedTest = '';
+let currentViewDate = getTodayIST();
+
+// Timer state
+let pomo = { run: false, int: null, mode: 'focus', total: 25*60, left: 25*60, sessions: 0, focusMin: 0, streak: 0 };
+let sw = { run: false, int: null, elapsed: 0, best: load('best-sw', 0) };
+let bestPomo = load('best-pomo', 0);
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+function init() {
+  const now = new Date();
+  const h = now.getHours();
+  const greeting = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+  const el = document.getElementById('greeting-time');
+  if (el) el.textContent = greeting;
+
+  document.getElementById('home-date-sub').textContent = fmtDate(getTodayIST());
+  updateCountdown();
+  buildDateStrip();
+  loadDayData(getTodayIST());
+  renderTaskList();
+  renderAllTasks();
+  renderNotes();
+  updatePomoDots();
+  updateBests();
+  loadStreak();
+  updateTaskBadge();
+  updateNotesBadge();
+}
+
+// ═══════════════════════════════════════════
+// DATE STRIP
+// ═══════════════════════════════════════════
+function buildDateStrip() {
+  const strip = document.getElementById('date-strip');
+  const today = getTodayIST();
+  const allLogs = load('logs', {});
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = '';
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const ist = new Date(d.getTime() + (5.5 * 60 * 60000) + d.getTimezoneOffset() * 60000);
+    const ds = ist.toISOString().split('T')[0];
+    const isToday = ds === today;
+    const hasData = allLogs[ds] && (allLogs[ds].questions > 0 || allLogs[ds].hours > 0);
+    html += `<div class="date-pill ${isToday || ds === currentViewDate ? 'active' : ''} ${hasData ? 'has-data' : ''}" onclick="viewDate('${ds}')">
+      <span>${days[ist.getDay()]}</span><span>${ist.getDate()}</span>
+    </div>`;
+  }
+  strip.innerHTML = html;
+}
+
+function viewDate(ds) {
+  currentViewDate = ds;
+  buildDateStrip();
+  loadDayData(ds);
+}
+
+// ═══════════════════════════════════════════
+// SAVE / LOAD DAY DATA
+// ═══════════════════════════════════════════
+function saveLog() {
+  const logs = load('logs', {});
+  const today = getTodayIST();
+  const manualEff = parseFloat(document.getElementById('inp-eff').value);
+  logs[today] = {
+    date: today,
+    questions: parseInt(document.getElementById('inp-q').value) || 0,
+    hours: parseFloat(document.getElementById('inp-h').value) || 0,
+    effectivity: manualEff || calcEffectivity() || null,
+    pomoSessions: pomo.sessions,
+    focusMin: pomo.focusMin,
+    swElapsed: sw.elapsed,
+    mood: selectedMood,
+    test: selectedTest,
+    improved: document.getElementById('inp-improved').value,
+    regret: document.getElementById('inp-regret').value,
+  };
+  save('logs', logs);
+  markStreak();
+  buildDateStrip();
+  const t = document.getElementById('toast');
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function loadDayData(ds) {
+  const logs = load('logs', {});
+  const data = logs[ds] || {};
+  const isToday = ds === getTodayIST();
+
+  if (isToday) {
+    document.getElementById('inp-q').value = data.questions || '';
+    document.getElementById('inp-h').value = data.hours || '';
+    document.getElementById('inp-eff').value = data.effectivity || '';
+    document.getElementById('inp-improved').value = data.improved || '';
+    document.getElementById('inp-regret').value = data.regret || '';
+    if (data.mood) setMoodSilent(data.mood);
+    if (data.test) setTestSilent(data.test);
+    if (data.pomoSessions) {
+      pomo.sessions = data.pomoSessions;
+      pomo.focusMin = data.focusMin || 0;
+      document.getElementById('ti-sessions').textContent = pomo.sessions;
+      document.getElementById('ti-focus').textContent = pomo.focusMin + 'm';
+      updatePomoDots();
+    }
+    if (data.swElapsed) {
+      sw.elapsed = data.swElapsed;
+      renderSW();
+    }
+  }
+  updateStats();
+}
+
+// ═══════════════════════════════════════════
+// TASKS
+// ═══════════════════════════════════════════
+function addTask() {
+  const title = document.getElementById('add-title').value.trim();
+  if (!title) { document.getElementById('add-title').focus(); return; }
+  const task = {
+    id: Date.now(),
+    date: getTodayIST(),
+    title,
+    subject: document.getElementById('add-subject').value,
+    priority: document.getElementById('add-priority').value,
+    mins: parseInt(document.getElementById('add-mins').value) || 0,
+    chapter: document.getElementById('add-chapter').value.trim(),
+    notes: document.getElementById('add-notes-task').value.trim(),
+    done: false,
+    createdAt: Date.now(),
+  };
+  allTasks.push(task);
+  save('tasks', allTasks);
+  document.getElementById('add-title').value = '';
+  document.getElementById('add-mins').value = '';
+  document.getElementById('add-chapter').value = '';
+  document.getElementById('add-notes-task').value = '';
+  renderTaskList();
+  renderAllTasks();
+  updateStats();
+  updateTaskBadge();
+}
+
+function toggleTask(id) {
+  const t = allTasks.find(x => x.id === id);
+  if (t) { t.done = !t.done; save('tasks', allTasks); }
+  renderTaskList();
+  renderAllTasks();
+  updateStats();
+  updateTaskBadge();
+}
+
+function deleteTask(id) {
+  allTasks = allTasks.filter(x => x.id !== id);
+  save('tasks', allTasks);
+  renderTaskList();
+  renderAllTasks();
+  updateStats();
+  updateTaskBadge();
+}
+
+function setFilter(btn, f) {
+  taskFilter = f;
+  document.querySelectorAll('#page-home .filter-pill').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderTaskList();
+}
+
+function setAllFilter(btn, f) {
+  allTaskFilter = f;
+  document.querySelectorAll('#page-tasks .filter-pill').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderAllTasks();
+}
+
+const SUBJ_ICONS = {
+  'Physics': '⚛️', 'Physical Chem': '🧪', 'Organic Chem': '🔗',
+  'Inorganic Chem': '💎', 'Zoology': '🐾', 'Botany': '🌿', 'General': '📌'
+};
+
+function taskHTML(t, showDate = false) {
+  const pbar = { high:'tag-high', medium:'tag-medium', low:'tag-low' };
+  const icons = SUBJ_ICONS[t.subject] || '📚';
+  const dateStr = showDate ? `<span style="font-size:9px;color:var(--text3);margin-left:auto">${t.date}</span>` : '';
+  return `<div class="task-item ${t.done ? 'done' : ''}" id="task-${t.id}">
+    <div class="priority-bar ${t.priority}"></div>
+    <div class="task-check" onclick="toggleTask(${t.id})">${t.done ? '<span style="color:#fff;font-size:12px">✓</span>' : ''}</div>
+    <div class="task-body">
+      <div class="task-title">${t.title}</div>
+      <div class="task-meta">
+        <span class="tag tag-${t.priority}">${t.priority === 'high' ? '🔴 High' : t.priority === 'medium' ? '🟡 Med' : '🟢 Low'}</span>
+        <span class="tag tag-subject">${icons} ${t.subject}</span>
+        ${t.mins ? `<span class="tag tag-mins">⏱ ${t.mins}m</span>` : ''}
+        ${t.chapter ? `<span style="font-size:10px;color:var(--text3)">📖 ${t.chapter}</span>` : ''}
+        ${t.notes ? `<span style="font-size:10px;color:var(--text3)">💬 ${t.notes}</span>` : ''}
+        ${dateStr}
+      </div>
+    </div>
+    <div class="task-actions">
+      <button class="task-del" onclick="deleteTask(${t.id})">✕</button>
+    </div>
+  </div>`;
+}
+
+function renderTaskList() {
+  const today = getTodayIST();
+  let todayTasks = allTasks.filter(t => t.date === today);
+  if (taskFilter !== 'all') todayTasks = todayTasks.filter(t => t.subject === taskFilter);
+
+  const pending = todayTasks.filter(t => !t.done).sort((a,b) => {
+    const p = { high:0, medium:1, low:2 };
+    return p[a.priority] - p[b.priority];
+  });
+  const done = todayTasks.filter(t => t.done);
+
+  const list = document.getElementById('task-list-today');
+  if (pending.length === 0 && done.length === 0) {
+    list.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3)"><div style="font-size:32px;margin-bottom:8px">📋</div><div style="font-weight:600">No tasks yet — add one above!</div></div>`;
+  } else {
+    list.innerHTML = pending.map(t => taskHTML(t)).join('');
+  }
+
+  const compSection = document.getElementById('completed-section');
+  const compList = document.getElementById('completed-list');
+  const compCount = document.getElementById('comp-count');
+  if (done.length > 0) {
+    compSection.style.display = 'block';
+    compCount.textContent = `(${done.length})`;
+    compList.innerHTML = done.map(t => taskHTML(t)).join('');
+  } else {
+    compSection.style.display = 'none';
+  }
+}
+
+function toggleCompleted() {
+  const el = document.getElementById('completed-list');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function renderAllTasks() {
+  let tasks = [...allTasks];
+  if (allTaskFilter !== 'all' && allTaskFilter !== 'high' && allTaskFilter !== 'medium' && allTaskFilter !== 'low') {
+    tasks = tasks.filter(t => t.subject === allTaskFilter);
+  } else if (['high','medium','low'].includes(allTaskFilter)) {
+    tasks = tasks.filter(t => t.priority === allTaskFilter);
+  }
+  tasks.sort((a,b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    const p = { high:0, medium:1, low:2 };
+    if (a.priority !== b.priority) return p[a.priority] - p[b.priority];
+    return b.createdAt - a.createdAt;
+  });
+
+  const total = allTasks.length, done = allTasks.filter(t => t.done).length;
+  const pct = total ? Math.round(done/total*100) : 0;
+  document.getElementById('all-tasks-pct').textContent = pct + '%';
+  document.getElementById('all-tasks-bar').style.width = pct + '%';
+  document.getElementById('all-tasks-done').textContent = done;
+  document.getElementById('all-tasks-pending').textContent = total - done;
+  document.getElementById('all-tasks-high').textContent = allTasks.filter(t => t.priority==='high' && !t.done).length;
+
+  const el = document.getElementById('all-tasks-list');
+  if (tasks.length === 0) {
+    el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3)"><div style="font-size:32px;margin-bottom:8px">✅</div><div style="font-weight:600">No tasks here!</div></div>`;
+  } else {
+    el.innerHTML = tasks.map(t => taskHTML(t, true)).join('');
+  }
+}
+
+function updateTaskBadge() {
+  const pending = allTasks.filter(t => !t.done).length;
+  document.getElementById('tasks-badge').textContent = pending || '0';
+}
+
+// ═══════════════════════════════════════════
+// NOTES
+// ═══════════════════════════════════════════
+function addNote() {
+  const title = document.getElementById('note-title').value.trim();
+  const content = document.getElementById('note-content').value.trim();
+  if (!title && !content) return;
+  const note = {
+    id: Date.now(),
+    date: getTodayIST(),
+    title: title || 'Untitled',
+    content,
+    subject: document.getElementById('note-subject').value,
+    tag: document.getElementById('note-tag').value,
+  };
+  allNotes.unshift(note);
+  save('notes', allNotes);
+  document.getElementById('note-title').value = '';
+  document.getElementById('note-content').value = '';
+  renderNotes();
+  updateNotesBadge();
+}
+
+function deleteNote(id) {
+  allNotes = allNotes.filter(n => n.id !== id);
+  save('notes', allNotes);
+  renderNotes();
+  updateNotesBadge();
+}
+
+const TAG_STYLES = {
+  doubt: 'color:#fb7185;background:rgba(244,63,94,0.1);border-color:rgba(244,63,94,0.2)',
+  insight: 'color:#fcd34d;background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.2)',
+  formula: 'color:#67e8f9;background:rgba(34,211,238,0.1);border-color:rgba(34,211,238,0.2)',
+  revision: 'color:#c4b5fd;background:rgba(168,85,247,0.1);border-color:rgba(168,85,247,0.2)',
+  general: 'color:var(--text2);background:rgba(255,255,255,0.04);border-color:var(--border)',
+};
+const TAG_LABELS = { doubt:'🤔 Doubt', insight:'💡 Insight', formula:'📐 Formula', revision:'🔄 Revision', general:'📌 General' };
+
+function renderNotes() {
+  const el = document.getElementById('notes-list');
+  if (allNotes.length === 0) {
+    el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3)"><div style="font-size:32px;margin-bottom:8px">📝</div><div style="font-weight:600">No notes yet</div></div>`;
+    return;
+  }
+  el.innerHTML = allNotes.map(n => `
+    <div class="card-sm mb-4" style="position:relative">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:14px;font-weight:700;color:var(--text)">${n.title}</div>
+        <button class="task-del" onclick="deleteNote(${n.id})">✕</button>
+      </div>
+      ${n.content ? `<div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:10px;white-space:pre-wrap">${n.content}</div>` : ''}
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="tag" style="${TAG_STYLES[n.tag]}">${TAG_LABELS[n.tag]}</span>
+        <span class="tag tag-subject">${SUBJ_ICONS[n.subject] || '📚'} ${n.subject}</span>
+        <span style="font-size:10px;color:var(--text3);margin-left:auto">${n.date}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateNotesBadge() {
+  document.getElementById('notes-badge').textContent = allNotes.length || '0';
+}
+
+// ═══════════════════════════════════════════
+// STATS & EFFECTIVITY
+// ═══════════════════════════════════════════
+function calcEffectivity() {
+  const q = parseInt(document.getElementById('inp-q').value) || 0;
+  const h = parseFloat(document.getElementById('inp-h').value) || pomo.focusMin / 60;
+  if (h <= 0) return null;
+  const qph = q / h;
+  const base = Math.min(7, qph / 10);
+  const bonus = Math.min(3, pomo.sessions * 0.3);
+  const eff = Math.max(1, Math.min(10, Math.round((base + bonus) * 10) / 10));
+
+  document.getElementById('stat-eff').textContent = eff.toFixed(1);
+  document.getElementById('stat-eff-sub').textContent = 'out of 10';
+  document.getElementById('ti-eff').textContent = eff.toFixed(1);
+  document.getElementById('sync-eff-badge').textContent = eff.toFixed(1) + '/10';
+  if (!document.getElementById('inp-eff').value) document.getElementById('inp-eff').placeholder = 'Auto: ' + eff.toFixed(1);
+  return eff;
+}
+
+function updateStats() {
+  const today = getTodayIST();
+  const todayTasks = allTasks.filter(t => t.date === today);
+  const doneTasks = todayTasks.filter(t => t.done);
+  const totalTasks = todayTasks.length;
+  const pct = totalTasks ? Math.round(doneTasks.length / totalTasks * 100) : 0;
+
+  document.getElementById('stat-tasks').textContent = `${doneTasks.length}/${totalTasks}`;
+  document.getElementById('stat-tasks-sub').textContent = pct + '% complete';
+  document.getElementById('prog-pct').textContent = pct + '%';
+  document.getElementById('prog-bar').style.width = pct + '%';
+  document.getElementById('prog-done').textContent = doneTasks.length;
+  document.getElementById('prog-left').textContent = totalTasks - doneTasks.length;
+  document.getElementById('prog-total').textContent = totalTasks;
+
+  const h = parseFloat(document.getElementById('inp-h').value) || 0;
+  const q = parseInt(document.getElementById('inp-q').value) || 0;
+  document.getElementById('stat-hours').textContent = h.toFixed(1) + 'h';
+  document.getElementById('stat-questions').textContent = q;
+  document.getElementById('gl-hours').textContent = h.toFixed(1) + 'h';
+  document.getElementById('gl-q').textContent = q;
+
+  // Distribution
+  const theoryTasks = todayTasks.filter(t => !t.done && (t.title.toLowerCase().includes('lecture') || t.title.toLowerCase().includes('theory'))).length;
+  const practiceTasks = todayTasks.filter(t => !t.done && (t.title.toLowerCase().includes('practice') || t.title.toLowerCase().includes('dpp'))).length;
+  const totalD = todayTasks.length || 1;
+  const tPct = Math.round(theoryTasks/totalD*100);
+  const pPct = Math.round(practiceTasks/totalD*100);
+  const rPct = Math.max(0, 100 - tPct - pPct);
+  document.getElementById('dist-theory').style.width = tPct + '%';
+  document.getElementById('dist-practice').style.width = pPct + '%';
+  document.getElementById('dist-revision').style.width = rPct + '%';
+  document.getElementById('dist-theory-pct').textContent = tPct + '%';
+  document.getElementById('dist-practice-pct').textContent = pPct + '%';
+  document.getElementById('dist-revision-pct').textContent = rPct + '%';
+
+  // Insight
+  const insights = [
+    'Keep going! Consistency is the key to cracking NEET.',
+    'Try solving at least 50 MCQs from past papers today.',
+    'Revise your weak chapters before sleeping tonight.',
+    'Great work! Your study streak is building momentum.',
+    'Balance theory and practice for optimal retention.',
+  ];
+  document.getElementById('insight-text').textContent = insights[new Date().getDay() % insights.length];
+
+  calcEffectivity();
+}
+
+function setMood(m, btn) {
+  selectedMood = m;
+  document.querySelectorAll('#mood-btns .filter-pill').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+function setMoodSilent(m) {
+  selectedMood = m;
+  document.querySelectorAll('#mood-btns .filter-pill').forEach(b => {
+    if (b.textContent.trim() === m) b.classList.add('active');
+    else b.classList.remove('active');
+  });
+}
+
+function setTest(v) {
+  selectedTest = v;
+  document.getElementById('test-yes').style.background = v === 'yes' ? 'rgba(16,185,129,0.15)' : '';
+  document.getElementById('test-yes').style.color = v === 'yes' ? 'var(--emerald)' : '';
+  document.getElementById('test-yes').style.borderColor = v === 'yes' ? 'rgba(16,185,129,0.3)' : '';
+  document.getElementById('test-no').style.background = v === 'no' ? 'rgba(244,63,94,0.12)' : '';
+  document.getElementById('test-no').style.color = v === 'no' ? 'var(--rose)' : '';
+  document.getElementById('test-no').style.borderColor = v === 'no' ? 'rgba(244,63,94,0.25)' : '';
+}
+
+function setTestSilent(v) { setTest(v); }
+
+// ═══════════════════════════════════════════
+// POMODORO
+// ═══════════════════════════════════════════
+function setPomoMode(mode, mins) {
+  if (pomo.run) { clearInterval(pomo.int); pomo.run = false; }
+  pomo.mode = mode; pomo.total = mins * 60; pomo.left = mins * 60;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  const colors = { focus: '#6366f1', short: '#22d3ee', long: '#f59e0b' };
+  document.getElementById('pomo-ring').style.stroke = colors[mode];
+  document.getElementById('pomo-play-btn').textContent = '▶ Start';
+  document.getElementById('pomo-play-btn').classList.remove('paused');
+  updatePomoDisplay();
+}
+
+function togglePomo() {
+  if (pomo.run) {
+    clearInterval(pomo.int); pomo.run = false;
+    document.getElementById('pomo-play-btn').textContent = '▶ Resume';
+    document.getElementById('pomo-play-btn').classList.add('paused');
+  } else {
+    pomo.run = true;
+    document.getElementById('pomo-play-btn').textContent = '⏸ Pause';
+    document.getElementById('pomo-play-btn').classList.remove('paused');
+    if (!sw.run) toggleSW(); // auto-start stopwatch
+    pomo.int = setInterval(pomTick, 1000);
+  }
+}
+
+function pomTick() {
+  if (pomo.left <= 0) { finishPomo(); return; }
+  pomo.left--;
+  updatePomoDisplay();
+}
+
+function resetPomo() {
+  clearInterval(pomo.int); pomo.run = false;
+  pomo.left = pomo.total;
+  document.getElementById('pomo-play-btn').textContent = '▶ Start';
+  document.getElementById('pomo-play-btn').classList.remove('paused');
+  updatePomoDisplay();
+}
+
+function skipPomo() { clearInterval(pomo.int); pomo.run = false; pomo.left = 0; finishPomo(); }
+
+function finishPomo() {
+  clearInterval(pomo.int); pomo.run = false;
+  playBeep();
+  if (pomo.mode === 'focus') {
+    pomo.sessions++;
+    pomo.streak++;
+    pomo.focusMin += 25;
+    if (pomo.sessions > bestPomo) { bestPomo = pomo.sessions; save('best-pomo', bestPomo); }
+    // Sync hours
+    const hrs = (pomo.focusMin / 60).toFixed(2);
+    document.getElementById('inp-h').value = hrs;
+    document.getElementById('stat-hours').textContent = parseFloat(hrs).toFixed(1) + 'h';
+    const dh = Math.floor(pomo.focusMin/60), dm = pomo.focusMin % 60;
+    document.getElementById('sync-hrs').textContent = dh + 'h ' + dm + 'm';
+    document.getElementById('ti-sessions').textContent = pomo.sessions;
+    document.getElementById('ti-focus').textContent = pomo.focusMin + 'm';
+    document.getElementById('ti-bonus').textContent = '+' + Math.round(Math.min(3, pomo.sessions * 0.3) * 10) / 10;
+    document.getElementById('pomo-count') && (document.getElementById('pomo-count').textContent = pomo.sessions);
+    updatePomoDots();
+    updateBests();
+    calcEffectivity();
+    updateStats();
+  }
+  setTimeout(() => {
+    const next = pomo.mode === 'focus' ? (pomo.sessions % 4 === 0 ? 'long' : 'short') : 'focus';
+    const t = next === 'focus' ? 25 : next === 'short' ? 5 : 15;
+    setPomoMode(next, t);
+  }, 1500);
+}
+
+function updatePomoDisplay() {
+  const m = String(Math.floor(pomo.left/60)).padStart(2,'0');
+  const s = String(pomo.left%60).padStart(2,'0');
+  document.getElementById('pomo-display').textContent = m + ':' + s;
+  document.getElementById('pomo-display') && (document.getElementById('pomo-display').textContent = m + ':' + s);
+  const lbls = { focus:'Focus', short:'Short Break', long:'Long Break' };
+  document.getElementById('pomo-mode-lbl').textContent = lbls[pomo.mode];
+  const circ = 2 * Math.PI * 85;
+  const pct = 1 - pomo.left / pomo.total;
+  const ring = document.getElementById('pomo-ring');
+  ring.style.strokeDasharray = circ;
+  ring.style.strokeDashoffset = circ * pct;
+}
+
+function updatePomoDots() {
+  const el = document.getElementById('pomo-dots');
+  if (!el) return;
+  let html = '';
+  for (let i = 0; i < 4; i++) {
+    const filled = pomo.sessions > 0 && (i < pomo.sessions % 4 || (pomo.sessions % 4 === 0 && pomo.sessions > 0 && i < 4));
+    html += `<div class="pomo-dot ${filled ? 'filled' : ''}"></div>`;
+  }
+  el.innerHTML = html;
+}
+
+function playBeep() {
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    [880, 1100, 1320].forEach((f, i) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.connect(g); g.connect(ac.destination);
+      o.frequency.value = f;
+      const t = ac.currentTime + i * 0.15;
+      g.gain.setValueAtTime(0.15, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+      o.start(t); o.stop(t + 0.13);
+    });
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════
+// STOPWATCH
+// ═══════════════════════════════════════════
+function toggleSW() {
+  if (sw.run) {
+    clearInterval(sw.int); sw.run = false;
+    document.getElementById('sw-start-btn').textContent = '▶ Resume';
+    if (sw.elapsed > sw.best) { sw.best = sw.elapsed; save('best-sw', sw.best); updateBests(); }
+  } else {
+    sw.run = true;
+    document.getElementById('sw-start-btn').textContent = '⏸ Pause';
+    sw.int = setInterval(() => { sw.elapsed++; renderSW(); }, 1000);
+  }
+}
+
+function resetSW() {
+  clearInterval(sw.int); sw.run = false;
+  if (sw.elapsed > sw.best) { sw.best = sw.elapsed; save('best-sw', sw.best); }
+  sw.elapsed = 0;
+  renderSW();
+  document.getElementById('sw-start-btn').textContent = '▶ Start';
+  updateBests();
+}
+
+function renderSW() {
+  const h = Math.floor(sw.elapsed / 3600);
+  const m = Math.floor((sw.elapsed % 3600) / 60);
+  const s = sw.elapsed % 60;
+  document.getElementById('sw-display').textContent = h + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function updateBests() {
+  const bsw = sw.best;
+  const bh = Math.floor(bsw/3600), bm = Math.floor((bsw%3600)/60);
+  document.getElementById('best-sw').textContent = bh > 0 ? bh + 'h ' + bm + 'm' : bm + 'm';
+  document.getElementById('best-pomo').textContent = bestPomo;
+  // best day hours from logs
+  const logs = load('logs', {});
+  const maxH = Math.max(0, ...Object.values(logs).map(l => l.hours || 0));
+  document.getElementById('best-hrs').textContent = maxH.toFixed(1) + 'h';
+}
+
+// ═══════════════════════════════════════════
+// STREAK
+// ═══════════════════════════════════════════
+function loadStreak() {
+  const s = load('streak', { count: 0, last: '' });
+  const today = getTodayIST();
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  let count = s.count || 0;
+  if (s.last !== today && s.last !== yesterday) count = 0;
+  document.getElementById('streak-count').textContent = count;
+}
+
+function markStreak() {
+  const s = load('streak', { count: 0, last: '' });
+  const today = getTodayIST();
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  let count = s.last === yesterday ? (s.count || 0) + 1 : s.last === today ? s.count : 1;
+  save('streak', { count, last: today });
+  document.getElementById('streak-count').textContent = count;
+}
+
+// ═══════════════════════════════════════════
+// COUNTDOWN
+// ═══════════════════════════════════════════
+function updateCountdown() {
+  const examDate = new Date('2026-05-04T00:00:00+05:30');
+  const now = new Date();
+  const diff = Math.max(0, Math.floor((examDate - now) / 86400000));
+  document.getElementById('cw-days').textContent = diff;
+}
+
+// ═══════════════════════════════════════════
+// ANALYTICS
+// ═══════════════════════════════════════════
+function renderAnalytics() {
+  const logs = load('logs', {});
+  const entries = Object.values(logs);
+  const totalH = entries.reduce((s,l) => s + (l.hours||0), 0);
+  const totalQ = entries.reduce((s,l) => s + (l.questions||0), 0);
+  const effs = entries.filter(l => l.effectivity).map(l => l.effectivity);
+  const avgEff = effs.length ? (effs.reduce((a,b) => a+b,0)/effs.length).toFixed(1) : '—';
+  document.getElementById('an-total-h').textContent = totalH.toFixed(1) + 'h';
+  document.getElementById('an-total-q').textContent = totalQ;
+  document.getElementById('an-avg-eff').textContent = avgEff !== '—' ? avgEff + '/10' : '—';
+  document.getElementById('an-days').textContent = entries.length;
+
+  // 7-day charts
+  const days7 = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const ist = new Date(d.getTime() + (5.5*60*60000) + d.getTimezoneOffset()*60000);
+    const ds = ist.toISOString().split('T')[0];
+    const log = logs[ds] || {};
+    days7.push({ lbl: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][ist.getDay()], h: log.hours||0, q: log.questions||0, e: log.effectivity||0, today: ds === getTodayIST() });
+  }
+
+  function renderBarChart(id, data, color, maxOverride) {
+    const maxVal = maxOverride || Math.max(...data.map(d => d.val), 1);
+    document.getElementById(id).innerHTML = data.map(d => `
+      <div class="bc-col">
+        <div class="bc-val">${d.val > 0 ? (Number.isInteger(d.val) ? d.val : d.val.toFixed(1)) : ''}</div>
+        <div class="bc-bar ${d.today ? 'today' : ''}" style="height:${Math.max(3, d.val/maxVal*85)}px;background:${color}"></div>
+        <div class="bc-lbl">${d.lbl}</div>
+      </div>
+    `).join('');
+  }
+
+  renderBarChart('chart-h', days7.map(d => ({val:d.h, lbl:d.lbl, today:d.today})), 'linear-gradient(180deg,#6366f1,#8b5cf6)');
+  renderBarChart('chart-q', days7.map(d => ({val:d.q, lbl:d.lbl, today:d.today})), 'linear-gradient(180deg,#22d3ee,#10b981)');
+  renderBarChart('chart-eff', days7.map(d => ({val:d.e, lbl:d.lbl, today:d.today})), 'linear-gradient(180deg,#f59e0b,#f43f5e)', 10);
+
+  // Subject breakdown
+  const subjs = ['Physics','Physical Chem','Organic Chem','Inorganic Chem','Zoology','Botany'];
+  const subj_colors = {'Physics':'#3b82f6','Physical Chem':'#22d3ee','Organic Chem':'#a855f7','Inorganic Chem':'#f59e0b','Zoology':'#f43f5e','Botany':'#10b981'};
+  const subjData = {};
+  subjs.forEach(s => { subjData[s] = { total:0, done:0 }; });
+  allTasks.forEach(t => {
+    if (subjData[t.subject]) {
+      subjData[t.subject].total++;
+      if (t.done) subjData[t.subject].done++;
+    }
+  });
+  const sbEl = document.getElementById('subj-breakdown');
+  const withData = subjs.filter(s => subjData[s].total > 0);
+  if (withData.length === 0) {
+    sbEl.innerHTML = `<div style="color:var(--text3);font-size:12px;padding:10px 0">No task data yet</div>`;
+  } else {
+    sbEl.innerHTML = withData.map(s => {
+      const d = subjData[s];
+      const pct = d.total ? Math.round(d.done/d.total*100) : 0;
+      return `<div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+          <span style="color:var(--text2);font-weight:600">${SUBJ_ICONS[s]} ${s}</span>
+          <span style="color:var(--text3);font-family:var(--mono)">${d.done}/${d.total}</span>
+        </div>
+        <div class="prog-bar-track" style="height:5px">
+          <div class="prog-bar-fill" style="width:${pct}%;background:${subj_colors[s]}"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Personal bests
+  const bestH = Math.max(0, ...entries.map(l => l.hours||0));
+  const bestQ = Math.max(0, ...entries.map(l => l.questions||0));
+  const bestEffVal = effs.length ? Math.max(...effs) : null;
+  document.getElementById('pb-list').innerHTML = [
+    { l: '⏰ Most hours in a day', v: bestH.toFixed(1) + 'h' },
+    { l: '📝 Most questions in a day', v: bestQ },
+    { l: '⚡ Best effectivity', v: bestEffVal ? bestEffVal.toFixed(1) + '/10' : '—' },
+    { l: '🍅 Max pomodoros', v: bestPomo },
+    { l: '📋 Total tasks created', v: allTasks.length },
+    { l: '✅ Total tasks completed', v: allTasks.filter(t => t.done).length },
+  ].map(p => `
+    <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <span style="color:var(--text2)">${p.l}</span>
+      <span style="font-weight:700;font-family:var(--mono)">${p.v}</span>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+function gotoPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  else {
+    document.querySelectorAll('.nav-item').forEach(b => {
+      if (b.textContent.trim().startsWith(id === 'home' ? 'Home' : id === 'tasks' ? 'My Tasks' : id === 'timer' ? 'Timer' : id === 'notes' ? 'Notes' : 'Analytics')) {
+        b.classList.add('active');
+      }
+    });
+  }
+  if (id === 'analytics') renderAnalytics();
+  if (id === 'tasks') renderAllTasks();
+  if (id === 'notes') renderNotes();
+}
+
+// ═══════════════════════════════════════════
+// ═════════ BIOLOGY PLANNER ═════════
+let bioData = load('bioData', []);
+
+function bioAdd() {
+  const inp = document.getElementById('bio-input');
+  const name = inp.value.trim();
+  if (!name) return;
+
+  bioData.push({
+    id: Date.now(),
+    name,
+    prog: Array(6).fill(false)
+  });
+
+  inp.value = '';
+  save('bioData', bioData);
+  bioRender();
+}
+
+function bioToggle(id, i) {
+  const ch = bioData.find(x => x.id === id);
+  if (!ch) return;
+
+  ch.prog[i] = !ch.prog[i];
+
+  save('bioData', bioData);
+  bioRender();
+}
+
+function bioDelete(id) {
+  bioData = bioData.filter(x => x.id !== id);
+  save('bioData', bioData);
+  bioRender();
+}
+function bioRender() {
+  const el = document.getElementById('bio-table');
+  if (!el) return;
+
+  if (!bioData || bioData.length === 0) {
+    el.innerHTML = `<div style="text-align:center;color:var(--text3);padding:20px">No chapters yet</div>`;
+    return;
+  }
+
+  const cols = ["Lecture","Notes","DPP","Test","Rev1","Rev2"];
+
+  let html = `
+  <div style="overflow:auto">
+  <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:center">
+    <thead>
+      <tr>
+        <th style="border:1px solid var(--border);padding:6px">Chapter</th>
+        ${cols.map(c => `<th style="border:1px solid var(--border);padding:6px">${c}</th>`).join('')}
+        <th style="border:1px solid var(--border)">❌</th>
+      </tr>
+    </thead>
+    <tbody>
+  `;
+
+  bioData.forEach(ch => {
+
+    // ✅ CHECK IF COMPLETED
+    const isDone = ch.prog && ch.prog.every(v => v === true);
+
+    html += `
+    <tr style="${isDone ? 'background:rgba(16,185,129,0.15)' : ''}">
+
+      <!-- Chapter Name -->
+      <td style="border:1px solid var(--border);padding:6px;text-align:left">
+        ${ch.name}
+        ${isDone ? '<span style="color:#10b981;font-size:11px">(Completed)</span>' : ''}
+      </td>
+
+      <!-- Progress Cells -->
+      ${ch.prog.map((v,i)=>`
+        <td style="border:1px solid var(--border);cursor:pointer"
+            onclick="bioToggle(${ch.id},${i})">
+          ${v 
+            ? '<span style="color:#10b981;font-size:15px">✓</span>' 
+            : '<span style="color:#f43f5e;font-size:15px">✕</span>'}
+        </td>
+      `).join('')}
+
+      <!-- Delete -->
+      <td style="border:1px solid var(--border)">
+        <button class="task-del" onclick="bioDelete(${ch.id})">✕</button>
+      </td>
+
+    </tr>
+    `;
+  });
+
+  html += `</tbody></table></div>`;
+  el.innerHTML = html;
+}
+
+let phyData = load('phyData', []);
+
+function phyAdd() {
+  const inp = document.getElementById('phy-input');
+  const name = inp.value.trim();
+  if (!name) return;
+
+  phyData.push({ id: Date.now(), name, prog: Array(6).fill(false) });
+  inp.value='';
+  save('phyData', phyData);
+  phyRender();
+}
+
+function phyToggle(id,i){
+  const ch = phyData.find(x=>x.id===id);
+  ch.prog[i] = !ch.prog[i];
+  save('phyData', phyData);
+  phyRender();
+}
+
+function phyDelete(id){
+  phyData = phyData.filter(x=>x.id!==id);
+  save('phyData', phyData);
+  phyRender();
+}
+
+function phyRender(){
+  const el = document.getElementById('phy-table');
+  if (!el) return;
+
+  if (phyData.length === 0) {
+    el.innerHTML = `<div style="text-align:center;color:var(--text3);padding:20px">No chapters yet</div>`;
+    return;
+  }
+
+  const cols = ["Lecture","Notes","DPP","Test","Rev1","Rev2"];
+
+  let html = `<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;text-align:center">`;
+
+  html += `<tr><th>Chapter</th>${cols.map(c=>`<th>${c}</th>`).join('')}<th>❌</th></tr>`;
+
+  phyData.forEach(ch=>{
+    const isDone = ch.prog.every(v=>v);
+
+    html += `<tr style="${isDone?'background:rgba(16,185,129,0.15)':''}">
+      <td>${ch.name} ${isDone?'<span style="color:#10b981">(Completed)</span>':''}</td>
+      ${ch.prog.map((v,i)=>`<td onclick="phyToggle(${ch.id},${i})">${v?'✓':'✕'}</td>`).join('')}
+      <td><button class="task-del" onclick="phyDelete(${ch.id})">✕</button></td>
+    </tr>`;
+  });
+
+  html += `</table></div>`;
+  el.innerHTML = html;
+}
+let chemData = load('chemData', []);
+
+function chemAdd() {
+  const inp = document.getElementById('chem-input');
+  const name = inp.value.trim();
+  if (!name) return;
+
+  chemData.push({ id: Date.now(), name, prog: Array(6).fill(false) });
+  inp.value='';
+  save('chemData', chemData);
+  chemRender();
+}
+
+function chemToggle(id,i){
+  const ch = chemData.find(x=>x.id===id);
+  ch.prog[i] = !ch.prog[i];
+  save('chemData', chemData);
+  chemRender();
+}
+
+function chemDelete(id){
+  chemData = chemData.filter(x=>x.id!==id);
+  save('chemData', chemData);
+  chemRender();
+}
+
+function chemRender(){
+  const el = document.getElementById('chem-table');
+  if (!el) return;
+
+  if (chemData.length === 0) {
+    el.innerHTML = `<div style="text-align:center;color:var(--text3);padding:20px">No chapters yet</div>`;
+    return;
+  }
+
+  const cols = ["Lecture","Notes","DPP","Test","Rev1","Rev2"];
+
+  let html = `<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;text-align:center">`;
+
+  html += `<tr><th>Chapter</th>${cols.map(c=>`<th>${c}</th>`).join('')}<th>❌</th></tr>`;
+
+  chemData.forEach(ch=>{
+    const isDone = ch.prog.every(v=>v);
+
+    html += `<tr style="${isDone?'background:rgba(16,185,129,0.15)':''}">
+      <td>${ch.name} ${isDone?'<span style="color:#10b981">(Completed)</span>':''}</td>
+      ${ch.prog.map((v,i)=>`<td onclick="chemToggle(${ch.id},${i})">${v?'✓':'✕'}</td>`).join('')}
+      <td><button class="task-del" onclick="chemDelete(${ch.id})">✕</button></td>
+    </tr>`;
+  });
+
+  html += `</table></div>`;
+  el.innerHTML = html;
+}
+
+// BOOT
+// ═══════════════════════════════════════════
+init();
+
+bioRender();
+phyRender();
+chemRender();
+
+</script>
+</body>
+</html>
