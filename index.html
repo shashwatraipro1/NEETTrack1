@@ -297,6 +297,9 @@ select.inp{cursor:pointer}
       <span class="nav-icon">📝</span> Notes
       <span class="nav-badge" id="notes-badge">0</span>
     </button>
+    <button class="nav-item" onclick="gotoPage('botany',this)">
+  <span class="nav-icon">🌿</span> Botany Planner
+</button>
   </nav>
 
   <div class="sb-bottom">
@@ -741,6 +744,24 @@ select.inp{cursor:pointer}
         <div id="pb-list"></div>
       </div>
     </div>
+  </div>
+</div>
+  <!-- ══ BOTANY PLANNER PAGE ══ -->
+<div class="page" id="page-botany">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Botany <span>Planner</span></div>
+      <div class="page-sub">Track your chapter completion</div>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div style="display:flex; gap:10px; margin-bottom:12px">
+      <input class="inp" id="botany-chapter-input" placeholder="Add Chapter Name">
+      <button class="btn btn-primary" onclick="addBotanyChapter()">Add</button>
+    </div>
+
+    <div id="botany-list"></div>
   </div>
 </div>
 
@@ -1512,7 +1533,90 @@ function gotoPage(id, btn) {
 // ═══════════════════════════════════════════
 // BOOT
 // ═══════════════════════════════════════════
-init();
+init();{
+  const now = new Date();
+  const h = now.getHours();
+  const greeting = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+  const el = document.getElementById('greeting-time');
+  if (el) el.textContent = greeting;
+
+  document.getElementById('home-date-sub').textContent = fmtDate(getTodayIST());
+
+  updateCountdown();
+  buildDateStrip();
+  loadDayData(getTodayIST());
+
+  renderTaskList();
+  renderAllTasks();
+  renderNotes();
+
+  updatePomoDots();
+  updateBests();
+  loadStreak();
+
+  updateTaskBadge();
+  updateNotesBadge();
+
+  // ✅ NEW LINE (Botany Planner init)
+  renderBotany();
+}
+  // ═════════ BOTANY PLANNER ═════════
+let botanyChapters = load('botanyChapters', []);
+
+function addBotanyChapter() {
+  const input = document.getElementById('botany-chapter-input');
+  const name = input.value.trim();
+  if (!name) return;
+
+  botanyChapters.push({
+    id: Date.now(),
+    name,
+    status: true // true = tick, false = cross
+  });
+
+  input.value = '';
+  save('botanyChapters', botanyChapters);
+  renderBotany();
+}
+
+function toggleBotany(id) {
+  const ch = botanyChapters.find(x => x.id === id);
+  if (ch) ch.status = !ch.status;
+  save('botanyChapters', botanyChapters);
+  renderBotany();
+}
+
+function deleteBotany(id) {
+  botanyChapters = botanyChapters.filter(x => x.id !== id);
+  save('botanyChapters', botanyChapters);
+  renderBotany();
+}
+
+function renderBotany() {
+  const el = document.getElementById('botany-list');
+  if (!el) return;
+
+  if (botanyChapters.length === 0) {
+    el.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text3)">No chapters added</div>`;
+    return;
+  }
+
+  el.innerHTML = botanyChapters.map(ch => `
+    <div class="task-item">
+      <div class="task-check" onclick="toggleBotany(${ch.id})">
+        ${ch.status ? '<span style="color:#10b981">✓</span>' : '<span style="color:#f43f5e">✕</span>'}
+      </div>
+
+      <div class="task-body">
+        <div class="task-title">${ch.name}</div>
+      </div>
+
+      <div class="task-actions">
+        <button class="task-del" onclick="deleteBotany(${ch.id})">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
 </script>
 </body>
 </html>
