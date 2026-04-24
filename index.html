@@ -1571,14 +1571,13 @@ function addBotanyChapter() {
   botanyChapters.push({
     id: Date.now(),
     name,
-    status: true // true = tick, false = cross
+    progress: Array(6).fill(false)
   });
 
   input.value = '';
   save('botanyChapters', botanyChapters);
   renderBotany();
 }
-
 function toggleBotany(id) {
   const ch = botanyChapters.find(x => x.id === id);
   if (ch) ch.status = !ch.status;
@@ -1601,21 +1600,57 @@ function renderBotany() {
     return;
   }
 
-  el.innerHTML = botanyChapters.map(ch => `
-    <div class="task-item">
-      <div class="task-check" onclick="toggleBotany(${ch.id})">
-        ${ch.status ? '<span style="color:#10b981">✓</span>' : '<span style="color:#f43f5e">✕</span>'}
-      </div>
+  const columns = [
+    "Lecture", "Notes", "DPP", "Test", "Rev-1", "Rev-2"
+  ];
 
-      <div class="task-body">
-        <div class="task-title">${ch.name}</div>
-      </div>
+  let table = `
+    <div style="overflow:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:center">
+      <thead>
+        <tr>
+          <th style="padding:8px;border:1px solid var(--border)">Chapter</th>
+          ${columns.map(c => `<th style="padding:8px;border:1px solid var(--border)">${c}</th>`).join('')}
+          <th style="padding:8px;border:1px solid var(--border)">❌</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
 
-      <div class="task-actions">
-        <button class="task-del" onclick="deleteBotany(${ch.id})">✕</button>
-      </div>
-    </div>
-  `).join('');
+  botanyChapters.forEach(ch => {
+    table += `
+      <tr>
+        <td style="padding:8px;border:1px solid var(--border);text-align:left">${ch.name}</td>
+
+        ${columns.map((col, i) => `
+          <td style="border:1px solid var(--border);cursor:pointer"
+              onclick="toggleBotanyCell(${ch.id}, ${i})">
+            ${ch.progress && ch.progress[i]
+              ? '<span style="color:#10b981;font-size:16px">✓</span>'
+              : '<span style="color:#f43f5e;font-size:16px">✕</span>'}
+          </td>
+        `).join('')}
+
+        <td style="border:1px solid var(--border)">
+          <button class="task-del" onclick="deleteBotany(${ch.id})">✕</button>
+        </td>
+      </tr>
+    `;
+  });
+
+  table += `</tbody></table></div>`;
+
+  el.innerHTML = table;
+function toggleBotanyCell(id, index) {
+  const ch = botanyChapters.find(x => x.id === id);
+  if (!ch) return;
+
+  if (!ch.progress) ch.progress = Array(6).fill(false);
+
+  ch.progress[index] = !ch.progress[index];
+
+  save('botanyChapters', botanyChapters);
+  renderBotany();
 }
 </script>
 </body>
